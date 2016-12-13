@@ -80,7 +80,7 @@
          * @param  array $args
          * @return false|array|stdClass
          */
-        public function _get(array $args)
+        protected function _get(array $args)
         {
             // Auth
             $context = stream_context_create(array(
@@ -120,7 +120,7 @@
          * @param  array $http_response_header
          * @return array
          */
-        public function _getRateLimits(array $http_response_header)
+        protected function _getRateLimits(array $http_response_header)
         {
             $headers = $http_response_header;
             $formatted = array();

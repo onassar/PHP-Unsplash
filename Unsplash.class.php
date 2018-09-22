@@ -7,109 +7,206 @@
      * 
      * @link    https://github.com/onassar/PHP-Unsplash
      * @link    https://unsplash.com/developer/
+     * @link    https://unsplash.com/documentation
      * @author  Oliver Nassar <onassar@gmail.com>
      */
     class Unsplash
     {
         /**
-         * _appId
+         * _base
+         * 
+         * @var     string (default: 'https://api.unsplash.com')
+         * @access  protected
+         */
+        protected $_base = 'https://api.unsplash.com';
+
+        /**
+         * _id
          * 
          * @var     false|string (default: false)
          * @access  protected
          */
-        protected $_appId = false;
+        protected $_id = false;
 
         /**
-         * _associative
+         * _lastRemoteRequestHeaders
          * 
-         * @var     boolean
+         * @var     array (default: array())
          * @access  protected
          */
-        protected $_associative;
+        protected $_lastRemoteRequestHeaders = array();
 
         /**
-         * _base
+         * _limit
          * 
-         * @var     string
+         * @var     int (default: 30)
          * @access  protected
          */
-        protected $_base = 'https://api.unsplash.com/search/photos';
+        protected $_limit = 30;
 
         /**
-         * _limits
+         * _maxPerPage
+         * 
+         * @var     int (default: 30)
+         * @access  protected
+         */
+        protected $_maxPerPage = 30;
+
+        /**
+         * _offset
+         * 
+         * @var     int (default: 0)
+         * @access  protected
+         */
+        protected $_offset = 0;
+
+        /**
+         * _paths
+         * 
+         * @var     array
+         * @access  protected
+         */
+        protected $_paths = array(
+            'search' => '/search/photos'
+        );
+
+        /**
+         * _rateLimits
          * 
          * @var     null|array
          * @access  protected
          */
-        protected $_limits = null;
+        protected $_rateLimits = null;
 
         /**
-         * _page
+         * _requestTimeout
          * 
-         * @var     string (default: '1')
+         * @var     int (default: 10)
          * @access  protected
          */
-        protected $_page = '1';
-
-        /**
-         * _photosPerPage
-         * 
-         * @var     string (default: '20')
-         * @access  protected
-         */
-        protected $_photosPerPage = '20';
+        protected $_requestTimeout = 10;
 
         /**
          * __construct
          * 
          * @access  public
-         * @param   string $appId
-         * @param   boolean $associative (default: true)
+         * @param   string $id
          * @return  void
          */
-        public function __construct($appId, $associative = true)
+        public function __construct($id)
         {
-            $this->_appId = $appId;
-            $this->_associative = $associative;
+            $this->_id = $id;
+        }
+
+        /**
+         * _addUrlParams
+         * 
+         * @access  protected
+         * @param   string $url
+         * @param   array $params
+         * @return  string
+         */
+        protected function _addUrlParams(string $url, array $params): string
+        {
+            $query = http_build_query($params);
+            $piece = parse_url($url, PHP_URL_QUERY);
+            if ($piece === null) {
+                $url = ($url) . '?' . ($query);
+                return $url;
+            }
+            $url = ($url) . '&' . ($query);
+            return $url;
         }
 
         /**
          * _get
          * 
          * @access  protected
-         * @param   array $args
-         * @return  false|array|stdClass
+         * @param   array $requestData
+         * @return  null|array
          */
-        protected function _get(array $args)
+        protected function _get(array $requestData): ?array
         {
-            // Auth
-            $context = stream_context_create(array(
-                'http' => array(
-                    'method' => 'GET',
-                    'ignore_errors' => true,
-                    'header' => 'Authorization: Client-ID ' . ($this->_appId)
-                )
-            ));
+            // Make the request
+            $url = $this->_getSearchUrl($requestData);
+            $response = $this->_requestUrl($url);
+            if ($response === null) {
+                return null;
+            }
+            $this->_rateLimits = $this->_getRateLimits();
 
-            // Build the query
-            $path = http_build_query($args);
-            $url = ($this->_base) . '?' . ($path);
-            $response = file_get_contents($url, false, $context);
-            $headers = $http_response_header;
-            $this->_limits = $this->_getRateLimits($http_response_header);
-
-            // Attempt request; fail with false if it bails
+            // Invalid json response
             json_decode($response);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                return json_decode(
-                    $response,
-                    $this->_associative
-                );
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return null;
             }
 
-            // Fail
-            error_log('Unsplash:    failed response');
-            return false;
+            // Response formatting
+            $response = json_decode($response, true);
+            return $response;
+        }
+
+        /**
+         * _getFormattedSearchResponse
+         * 
+         * @access  protected
+         * @param   string $query
+         * @param   array $response
+         * @return  array
+         */
+        protected function _getFormattedSearchResponse(string $query, array $response): array
+        {
+            $results = $response['results'];
+            foreach ($results as $index => $hit) {
+                $results[$index]['original_query'] = $query;
+            }
+            return $results;
+        }
+
+        /**
+         * _getPaginationData
+         * 
+         * @access  protected
+         * @return  array
+         */
+        protected function _getPaginationData(): array
+        {
+            $perPage = $this->_getResultsPerPage();
+            $offset = $this->_offset;
+            $offset = $this->_roundToLower($offset, $perPage);
+            $page = ceil($offset / $perPage) + 1;
+            $paginationData = array(
+                'page' => $page,
+                'per_page' => $perPage
+            );
+            return $paginationData;
+        }
+
+        /**
+         * _getQueryData
+         * 
+         * @access  protected
+         * @param   string $query
+         * @return  array
+         */
+        protected function _getQueryData(string $query): array
+        {
+            $queryData = array(
+                'query' => $query
+            );
+            return $queryData;
+        }
+
+        /**
+         * _getResultsPerPage
+         * 
+         * @access  protected
+         * @return  int
+         */
+        protected function _getResultsPerPage(): int
+        {
+            $resultsPerPage = min($this->_limit, $this->_maxPerPage);
+            return $resultsPerPage;
         }
 
         /**
@@ -117,12 +214,14 @@
          * 
          * @see     http://php.net/manual/en/reserved.variables.httpresponseheader.php
          * @access  protected
-         * @param   array $http_response_header
-         * @return  array
+         * @return  null|array
          */
-        protected function _getRateLimits(array $http_response_header)
+        protected function _getRateLimits(): ?array
         {
-            $headers = $http_response_header;
+            $headers = $this->_lastRemoteRequestHeaders;
+            if ($headers === null) {
+                return null;
+            }
             $formatted = array();
             foreach ($headers as $header) {
                 $pieces = explode(':', $header);
@@ -130,91 +229,190 @@
                     $formatted[$pieces[0]] = $pieces[1];
                 }
             }
-            $limits = array(
+            $rateLimits = array(
                 'remaining' => false,
                 'limit' => false,
                 'reset' => false
             );
             if (isset($formatted['X-Ratelimit-Remaining']) === true) {
-                $limits['remaining'] = (int) trim($formatted['X-Ratelimit-Remaining']);
+                $rateLimits['remaining'] = (int) trim($formatted['X-Ratelimit-Remaining']);
             }
             if (isset($formatted['X-Ratelimit-Limit']) === true) {
-                $limits['limit'] = (int) trim($formatted['X-Ratelimit-Limit']);
+                $rateLimits['limit'] = (int) trim($formatted['X-Ratelimit-Limit']);
             }
             if (isset($formatted['X-Ratelimit-Reset']) === true) {
-                $limits['reset'] = (int) trim($formatted['X-Ratelimit-Reset']);
+                $rateLimits['reset'] = (int) trim($formatted['X-Ratelimit-Reset']);
             }
-            return $limits;
+            return $rateLimits;
         }
 
         /**
-         * getLimits
+         * _getRequestData
          * 
-         * @access  public
-         * @return  null|array
-         */
-        public function getLimits()
-        {
-            return $this->_limits;
-        }
-
-        /**
-         * query
-         * 
-         * @access  public
+         * @access  protected
          * @param   string $query
-         * @param   array $args (default: array())
-         * @return  false|array|stdClass
+         * @return  array
          */
-        public function query($query, array $args = array())
+        protected function _getRequestData(string $query): array
         {
-            $args = array_merge(
-                array(
-                    'query' => $query,
-                    'page' => $this->_page,
-                    'per_page' => $this->_photosPerPage
-                ),
-                $args
-            );
-            $response = $this->_get($args);
-            if ($response === false) {
-                return false;
-            }
+            $paginationData = $this->_getPaginationData();
+            $queryData = $this->_getQueryData($query);
+            $requestData = array_merge($paginationData, $queryData);
+            return $requestData;
+        }
 
-            // Add original query
-            if ($this->_associative === true) {
-                foreach ($response['results'] as $index => $hit) {
-                    $response['results'][$index]['original_query'] = $query;
-                }
-            } else {
-                foreach ($response->results as $index => $hit) {
-                    $response->results[$index]->original_query = $query;
-                }
+        /**
+         * _getRequestStreamContext
+         * 
+         * @access  protected
+         * @return  resource
+         */
+        protected function _getRequestStreamContext()
+        {
+            $id = $this->_id;
+            $requestTimeout = $this->_requestTimeout;
+            $options = array(
+                'http' => array(
+                    'header' => 'Authorization: Client-ID ' . ($id),
+                    'ignore_errors' => true,
+                    'method' => 'GET',
+                    'timeout' => $requestTimeout
+                )
+            );
+            $streamContext = stream_context_create($options);
+            return $streamContext;
+        }
+
+        /**
+         * _getSearchUrl
+         * 
+         * @access  protected
+         * @param   array $requestData
+         * @return  string
+         */
+        protected function _getSearchUrl(array $requestData): string
+        {
+            $base = $this->_base;
+            $path = $this->_paths['search'];
+            $data = $requestData;
+            $url = ($base) . ($path);
+            $url = $this->_addUrlParams($url, $data);
+            return $url;
+        }
+
+        /**
+         * _requestUrl
+         * 
+         * @access  protected
+         * @param   string $url
+         * @return  null|string
+         */
+        protected function _requestUrl(string $url): ?string
+        {
+            $streamContext = $this->_getRequestStreamContext();
+            $response = file_get_contents($url, false, $streamContext);
+            if ($response === false) {
+                return null;
+            }
+            if (isset($http_response_header) === true) {
+                $this->_lastRemoteRequestHeaders = $http_response_header;
             }
             return $response;
         }
 
         /**
-         * setPage
+         * _roundToLower
          * 
-         * @access  public
-         * @param   string $page
-         * @return  void
+         * @access  protected
+         * @param   int $int
+         * @param   int $interval
+         * @return  int
          */
-        public function setPage($page)
+        protected function _roundToLower(int $int, int $interval): int
         {
-            $this->_page = $page;
+            $int = (string) $int;
+            $int = preg_replace('/[^0-9]/', '', $int);
+            $int = (int) $int;
+            $lowered = floor($int / $interval) * $interval;
+            return $lowered;
         }
 
         /**
-         * setPhotosPerPage
+         * getRateLimits
          * 
          * @access  public
-         * @param   string $photosPerPage
+         * @return  null|array
+         */
+        public function getRateLimits(): ?array
+        {
+            $rateLimits = $this->_rateLimits;
+            return $rateLimits;
+        }
+
+        /**
+         * search
+         * 
+         * @access  public
+         * @param   string $query
+         * @param   array &persistent (default: array())
+         * @return  null|array
+         */
+        public function search(string $query, array &$persistent = array()): ?array
+        {
+            // Request results
+            $requestData = $this->_getRequestData($query);
+            $response = $this->_get($requestData);
+
+            // Failed request
+            if ($response === null) {
+                return array();
+            }
+            if (isset($response['results']) === false) {
+                return array();
+            }
+
+            // Format + more than enough found
+            $results = $this->_getFormattedSearchResponse($query, $response);
+            $resultsCount = count($results);
+            $mod = $this->_offset % $this->_getResultsPerPage();
+            if ($mod !== 0) {
+                array_splice($results, 0, $mod);
+            }
+            $persistent = array_merge($persistent, $results);
+            $persistentCount = count($persistent);
+            if ($persistentCount >= $this->_limit) {
+                return array_slice($persistent, 0, $this->_limit);
+            }
+            if ($resultsCount < $this->_maxPerPage) {
+                return array_slice($persistent, 0, $this->_limit);
+            }
+
+            // Recusively get more
+            $this->_offset += count($results);
+            return $this->search($query, $persistent);
+        }
+
+        /**
+         * setLimit
+         * 
+         * @access  public
+         * @param   string $limit
          * @return  void
          */
-        public function setPhotosPerPage($photosPerPage)
+        public function setLimit($limit)
         {
-            $this->_photosPerPage = $photosPerPage;
+            $this->_limit = $limit;
+        }
+
+        /**
+         * setOffset
+         * 
+         * @access  public
+         * @param   string $offset
+         * @return  void
+         */
+        public function setOffset($offset)
+        {
+            $this->_offset = $offset;
         }
     }

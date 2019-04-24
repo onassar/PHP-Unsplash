@@ -15,72 +15,72 @@
         /**
          * _attemptSleepDelay
          * 
-         * @var     int (default: 2000) in milliseconds
          * @access  protected
+         * @var     int (default: 2000) in milliseconds
          */
         protected $_attemptSleepDelay = 2000;
 
         /**
          * _base
          * 
-         * @var     string (default: 'https://api.unsplash.com')
          * @access  protected
+         * @var     string (default: 'https://api.unsplash.com')
          */
         protected $_base = 'https://api.unsplash.com';
 
         /**
          * _id
          * 
-         * @var     false|string (default: false)
          * @access  protected
+         * @var     false|string (default: false)
          */
         protected $_id = false;
 
         /**
          * _lastRemoteRequestHeaders
          * 
-         * @var     array (default: array())
          * @access  protected
+         * @var     array (default: array())
          */
         protected $_lastRemoteRequestHeaders = array();
 
         /**
          * _limit
          * 
-         * @var     int (default: 30)
          * @access  protected
+         * @var     int (default: 30)
          */
         protected $_limit = 30;
 
         /**
          * _logClosure
          * 
-         * @var     null|Closure (default: null)
          * @access  protected
+         * @var     null|Closure (default: null)
          */
         protected $_logClosure = null;
 
         /**
          * _maxPerPage
          * 
-         * @var     int (default: 30)
          * @access  protected
+         * @var     int (default: 30)
          */
         protected $_maxPerPage = 30;
 
         /**
          * _offset
          * 
-         * @var     int (default: 0)
          * @access  protected
+         * @var     int (default: 0)
          */
         protected $_offset = 0;
 
         /**
          * _paths
          * 
-         * @var     array
          * @access  protected
+         * @var     array
          */
         protected $_paths = array(
             'search' => '/search/photos'
@@ -89,16 +89,16 @@
         /**
          * _rateLimits
          * 
-         * @var     null|array
          * @access  protected
+         * @var     null|array
          */
         protected $_rateLimits = null;
 
         /**
          * _requestTimeout
          * 
-         * @var     int (default: 10)
          * @access  protected
+         * @var     int (default: 10)
          */
         protected $_requestTimeout = 10;
 

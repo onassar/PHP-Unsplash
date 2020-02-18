@@ -399,9 +399,7 @@
             if ($response === null) {
                 return null;
             }
-            if (isset($http_response_header) === true) {
-                $this->_lastRemoteRequestHeaders = $http_response_header;
-            }
+            $this->_lastRemoteRequestHeaders = $http_response_header ?? $this->_lastRemoteRequestHeaders;
             return $response;
         }
 

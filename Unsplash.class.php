@@ -258,9 +258,7 @@
          */
         protected function _getQueryData(string $query): array
         {
-            $queryData = array(
-                'query' => $query
-            );
+            $queryData = compact('query');
             return $queryData;
         }
 

@@ -50,6 +50,7 @@
          * @var     array
          */
         protected $_paths = array(
+            'download' => '/photos/:id/download',
             'search' => '/search/photos'
         );
 
@@ -63,7 +64,7 @@
          */
         public function __construct()
         {
-            $this->setMaxPerPage(30);
+            $this->_maxPerPage = 30;
             $this->_responseResultsIndex = 'results';
         }
 
@@ -92,6 +93,22 @@
             $header = $this->_getAuthorizationHeader();
             array_push($headers, $header);
             return $headers;
+        }
+
+        /**
+         * _getDownloadRequestURL
+         * 
+         * @access  protected
+         * @param   string $photoId
+         * @return  string
+         */
+        protected function _getDownloadRequestURL(string $photoId): string
+        {
+            $host = $this->_host;
+            $path = $this->_paths['download'];
+            $path = str_replace(':id', $photoId, $path);
+            $url = 'https://' . ($host) . ($path);
+            return $url;
         }
 
         /**
@@ -127,6 +144,19 @@
         }
 
         /**
+         * _setDownloadRequestURL
+         * 
+         * @access  protected
+         * @param   string $photoId
+         * @return  void
+         */
+        protected function _setDownloadRequestURL(string $photoId): void
+        {
+            $downloadURL = $this->_getDownloadRequestURL($photoId);
+            $this->setURL($downloadURL);
+        }
+
+        /**
          * download
          * 
          * @access  public
@@ -135,5 +165,11 @@
          */
         public function download(string $photoId): bool
         {
+            $this->_setDownloadRequestURL($photoId);
+            $response = $this->_getURLResponse() ?? false;
+            if ($response === false) {
+                return false;
+            }
+            return true;
         }
     }

@@ -108,6 +108,7 @@
         {
             $timestamp = time();
             $timestamp = ($timestamp) + (60 * 60);
+            $timestamp = $this->_roundToLower($timestamp, 3600);
             return $timestamp;
         }
 

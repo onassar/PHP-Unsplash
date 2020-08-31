@@ -64,7 +64,7 @@
          */
         public function __construct()
         {
-            $this->_maxResultsPerPage = 30;
+            $this->_maxResultsPerRequest = 30;
             $this->_responseResultsIndex = 'results';
         }
 

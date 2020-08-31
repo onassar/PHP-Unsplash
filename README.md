@@ -1,5 +1,5 @@
 # PHP-Unsplash
-PHP SDK for running queries against the millions of icons provided by
+PHP SDK for running queries against the millions of photos provided by
 [Unsplash](https://unsplash.com). Includes recursive searches.
 
 ### Supports

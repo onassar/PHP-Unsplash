@@ -7,7 +7,7 @@
     /**
      * Unsplash
      * 
-     * PHP wrapper for Unsplash
+     * PHP wrapper for Unsplash.
      * 
      * @link    https://github.com/onassar/PHP-Unsplash
      * @link    https://unsplash.com/developer/
@@ -50,8 +50,8 @@
          * @var     array
          */
         protected $_paths = array(
-            'download' => '/photos/:id/download',
-            'search' => '/search/photos'
+            'search' => '/search/photos',
+            'trackDownload' => '/photos/:id/download'
         );
 
         /**
@@ -64,7 +64,7 @@
          */
         public function __construct()
         {
-            $this->_maxPerPage = 30;
+            $this->_maxResultsPerPage = 30;
             $this->_responseResultsIndex = 'results';
         }
 
@@ -96,22 +96,6 @@
         }
 
         /**
-         * _getDownloadRequestURL
-         * 
-         * @access  protected
-         * @param   string $photoId
-         * @return  string
-         */
-        protected function _getDownloadRequestURL(string $photoId): string
-        {
-            $host = $this->_host;
-            $path = $this->_paths['download'];
-            $path = str_replace(':id', $photoId, $path);
-            $url = 'https://' . ($host) . ($path);
-            return $url;
-        }
-
-        /**
          * _getRateLimitResetValue
          * 
          * Unsplash resets their quotas (at least, during development mode)
@@ -119,9 +103,9 @@
          * 
          * @access  protected
          * @param   
-         * @return  null|int
+         * @return  null|int|string
          */
-        protected function _getRateLimitResetValue(): ?int
+        protected function _getRateLimitResetValue()
         {
             $timestamp = time();
             $timestamp = ($timestamp) + (60 * 60);
@@ -144,28 +128,44 @@
         }
 
         /**
-         * _setDownloadRequestURL
+         * _getTrackDownloadRequestURL
+         * 
+         * @access  protected
+         * @param   string $photoId
+         * @return  string
+         */
+        protected function _getTrackDownloadRequestURL(string $photoId): string
+        {
+            $host = $this->_host;
+            $path = $this->_paths['trackDownload'];
+            $path = str_replace(':id', $photoId, $path);
+            $url = 'https://' . ($host) . ($path);
+            return $url;
+        }
+
+        /**
+         * _setTrackDownloadRequestURL
          * 
          * @access  protected
          * @param   string $photoId
          * @return  void
          */
-        protected function _setDownloadRequestURL(string $photoId): void
+        protected function _setTrackDownloadRequestURL(string $photoId): void
         {
-            $downloadURL = $this->_getDownloadRequestURL($photoId);
-            $this->setURL($downloadURL);
+            $trackDownloadURL = $this->_getTrackDownloadRequestURL($photoId);
+            $this->setURL($trackDownloadURL);
         }
 
         /**
-         * download
+         * trackDownload
          * 
          * @access  public
          * @param   string $photoId
          * @return  bool
          */
-        public function download(string $photoId): bool
+        public function trackDownload(string $photoId): bool
         {
-            $this->_setDownloadRequestURL($photoId);
+            $this->_setTrackDownloadRequestURL($photoId);
             $response = $this->_getURLResponse() ?? false;
             if ($response === false) {
                 return false;

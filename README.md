@@ -6,6 +6,9 @@ PHP SDK for running queries against the millions of photos provided by
 - Searches
 - Download tracking
 
+### Requirements
+- [PHP-RemoteRequests](https://github.com/onassar/PHP-RemoteRequests)
+
 ### Sample Search
 ``` php
 $client = new onassar\Unsplash\Unsplash();
@@ -25,7 +28,3 @@ $tracked = $client->trackDownload('photo:id') ?? false;
 echo $tracked;
 exit(0);
 ```
-
-### Note
-Requires
-[PHP-RemoteRequests](https://github.com/onassar/PHP-RemoteRequests).

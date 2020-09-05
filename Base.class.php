@@ -15,7 +15,7 @@
      * @author  Oliver Nassar <onassar@gmail.com>
      * @extends RemoteRequests\Base
      */
-    class Unsplash extends RemoteRequests\Base
+    class Base extends RemoteRequests\Base
     {
         /**
          * Traits

@@ -3,6 +3,7 @@
     // Namespace overhead
     namespace onassar\Unsplash;
     use onassar\RemoteRequests;
+    use onassar\RiskyClosure;
 
     /**
      * Unsplash
@@ -56,6 +57,21 @@
         {
             $this->_maxResultsPerRequest = 30;
             $this->_responseResultsIndex = 'results';
+        }
+
+        /**
+         * _attempt
+         * 
+         * @access  protected
+         * @param   \Closure $closure
+         * @return  null|string
+         */
+        protected function _attempt(\Closure $closure): ?string
+        {
+            $callback = array($this, 'validFailedAttemptLog');
+            $this->setFailedAttemptLoggingEvaluator($callback);
+            $response = parent::_attempt($closure);
+            return $response;
         }
 
         /**
@@ -158,6 +174,26 @@
             $this->_setTrackDownloadRequestURL($photoId);
             $response = $this->_getURLResponse() ?? false;
             if ($response === false) {
+                return false;
+            }
+            return true;
+        }
+
+        /**
+         * validFailedAttemptLog
+         * 
+         * @access  public
+         * @param   RiskyClosure\Base $riskyClosure
+         * @return  bool
+         */
+        public function validFailedAttemptLog(RiskyClosure\Base $riskyClosure): bool
+        {
+            $maxAttempts = $riskyClosure->getMaxAttempts();
+            if ($maxAttempts === 1) {
+                return true;
+            }
+            $currentAttempt = $riskyClosure->getCurrentAttempt();
+            if ($currentAttempt === 1) {
                 return false;
             }
             return true;

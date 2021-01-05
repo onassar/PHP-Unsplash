@@ -55,8 +55,8 @@
          */
         public function __construct()
         {
-            $this->_maxResultsPerRequest = 30;
-            $this->_responseResultsIndex = 'results';
+            $this->_maxResultsSupportedPerRequest = 30;
+            $this->_responseResultsIndexKey = 'results';
         }
 
         /**
